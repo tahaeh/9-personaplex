@@ -1,0 +1,43 @@
+# Dockerfile for Fly.io GPU deployment
+# Fly GPU Machines have NVIDIA drivers pre-installed, so we use a slim Ubuntu base
+# and only install the CUDA runtime libraries we need.
+
+FROM ubuntu:22.04 AS base
+
+# Prevent interactive prompts during apt installs
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system deps + CUDA keyring for runtime libs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    build-essential \
+    pkg-config \
+    libopus-dev \
+    python3 \
+    python3-pip \
+    python3-venv \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install uv for fast Python package management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app/moshi/
+
+# Copy moshi package and install
+COPY moshi/ /app/moshi/
+RUN uv venv /app/moshi/.venv --python 3.12
+RUN uv sync
+
+EXPOSE 8998
+
+ENTRYPOINT []
+
+# On Fly.io:
+# - Server binds 0.0.0.0:8998 by default (aiohttp default)
+# - Fly's proxy handles TLS termination (HTTPS/WSS -> HTTP/WS internally)
+# - No --ssl needed; Fly adds HTTPS automatically
+# - HF_TOKEN is set via `fly secrets set`
+# - --static none: Fly serves the bundled static UI from HF dist.tgz (omit flag to auto-download)
+CMD ["/app/moshi/.venv/bin/python", "-m", "moshi.server"]
