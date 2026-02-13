@@ -1,6 +1,58 @@
 # Deploy PersonaPlex
 
-## Fly.io (Recommended)
+## RunPod (Recommended — Easiest GPU Deploy)
+
+Deploy PersonaPlex to [RunPod](https://runpod.io) with GPU. No approval wait, instant GPU access.
+
+### Step-by-step
+
+1. **Sign up** at [runpod.io](https://www.runpod.io) and add funds ($10 is plenty)
+2. Go to **Pods** > **+ Deploy**
+3. Pick a GPU with **24GB+ VRAM**: RTX 4090, RTX A5000, or A100
+4. Under **Template**, choose: `RunPod Pytorch 2.4.1`
+5. Set **Container Disk** to `30 GB` and **Volume Disk** to `50 GB`
+6. Under **Expose HTTP Ports**, add: `8998`
+7. Click **Deploy On-Demand**
+8. Once the pod is running, click **Connect** > **Start Web Terminal**
+9. Run these commands in the terminal:
+
+```bash
+# Install system deps
+apt-get update && apt-get install -y libopus-dev pkg-config build-essential git
+
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+# Clone and install
+cd /workspace
+git clone https://github.com/tahaeh/9-personaplex.git personaplex
+cd personaplex
+uv venv .venv --python 3.12
+uv pip install --python .venv/bin/python -e moshi/.
+
+# Set your HuggingFace token and start server
+export HF_TOKEN=your_hf_token_here
+/workspace/personaplex/.venv/bin/python -m moshi.server
+```
+
+10. Open `https://{YOUR_POD_ID}-8998.proxy.runpod.net` in your browser
+
+The Pod ID is shown in your RunPod dashboard. First boot takes ~10 min (model download).
+
+### Cost
+
+| GPU | Price/hr | VRAM |
+|-----|----------|------|
+| RTX A5000 | ~$0.26 | 24 GB |
+| RTX 4090 | ~$0.59 | 24 GB |
+| A100 80GB | ~$1.64 | 80 GB |
+
+Stop the pod when you're done to stop charges.
+
+---
+
+## Fly.io
 
 Deploy PersonaPlex to [Fly.io](https://fly.io) with GPU acceleration. No AWS vCPU limits, simple CLI workflow.
 
